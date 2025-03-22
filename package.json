@@ -1,0 +1,51 @@
+{
+  "name": "soxclock",
+  "author": "soxfox",
+  "version": "1.0.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "soxfox's Face",
+    "uuid": "0e59a9dd-7abe-43e5-97b2-dff3a054e0e7",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "diorite",
+      "emery"
+    ],
+    "watchapp": {
+      "watchface": true
+    },
+    "messageKeys": [
+      "dummy"
+    ],
+    "capabilities": [ "health" ],
+    "resources": {
+      "media": [
+        {
+          "type": "bitmap",
+          "name": "BACKGROUND",
+          "file": "background.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "BATTERY",
+          "file": "battery.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "CHARGING",
+          "file": "charging.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "STEPS",
+          "file": "steps.png"
+        }
+      ]
+    }
+  }
+}

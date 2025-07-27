@@ -31,17 +31,13 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 }
 
 static void background_layer_update(Layer *layer, GContext *ctx) {
+    GRect bounds = layer_get_unobstructed_bounds(layer);
     GRect full_bounds = layer_get_bounds(layer);
 
     graphics_context_set_fill_color(ctx, GColorBlack);
     graphics_fill_rect(ctx, full_bounds, 0, GCornerNone);
 
-    #ifdef PBL_RECT
-        GRect bounds = layer_get_unobstructed_bounds(layer);
-        GPoint center = GPoint(bounds.size.w / 2, bounds.size.h / 2);
-    #else
-        GPoint center = GPoint(full_bounds.size.w / 2, full_bounds.size.h / 2);
-    #endif
+    GPoint center = grect_center_point(&bounds);
 
     const int tick_inset = 15;
     const int tick_size = 10;

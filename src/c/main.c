@@ -79,10 +79,10 @@ static void draw_hand(GContext *ctx, GRect bounds, int length, int width, int an
 }
 
 static void hands_layer_update(Layer *layer, GContext *ctx) {
-    GRect bounds = layer_get_bounds(layer);
+    GRect bounds = layer_get_unobstructed_bounds(layer);
 
-    int hour_hand_length = bounds.size.w / 4;
-    int minute_hand_length = bounds.size.w * 2 / 5;
+    int hour_hand_length = bounds.size.h / 5;
+    int minute_hand_length = bounds.size.h / 3;
 
     int hand_width = bounds.size.w / 20;
 
@@ -94,6 +94,18 @@ static void hands_layer_update(Layer *layer, GContext *ctx) {
     #else
         draw_hand(ctx, bounds, minute_hand_length, hand_width, TRIG_MAX_ANGLE * s_time_minutes / 60, GColorFashionMagenta);
         draw_hand(ctx, bounds, hour_hand_length, hand_width, TRIG_MAX_ANGLE * (s_time_hours * 60 + s_time_minutes) / 720, GColorChromeYellow);
+    #endif
+}
+
+static void unobstructed_area_change(AnimationProgress progress, void *context) {
+    #ifdef PBL_RECT
+        GRect bounds = layer_get_unobstructed_bounds(window_get_root_layer(s_main_window));
+        layer_set_frame(
+            text_layer_get_layer(s_date_layer),
+            GRect(bounds.size.w - 38, bounds.size.h - PBL_DISPLAY_HEIGHT - 2, 36, 36)
+        );
+        battery_layer_set_bounds(GRect(bounds.size.w * 2 / 9, bounds.size.h / 6, bounds.size.w * 5 / 9, 24));
+        steps_layer_set_bounds(GRect(bounds.size.w * 2 / 9, bounds.size.h * 5 / 6 - 24, bounds.size.w * 5 / 9, 24));
     #endif
 }
 
@@ -133,11 +145,14 @@ static void main_window_load(Window *window) {
         GRect(meter_inset_horizontal, bounds.size.h - 24 - meter_inset_vertical, bounds.size.w - meter_inset_horizontal * 2, 24)
     );
 
-    int size = bounds.size.w;
-    int vertical_padding = (bounds.size.h - size) / 2;
-    s_hands_layer = layer_create(GRect(0, vertical_padding, size, size));
+    s_hands_layer = layer_create(bounds);
     layer_set_update_proc(s_hands_layer, hands_layer_update);
     layer_add_child(window_layer, s_hands_layer);
+
+    UnobstructedAreaHandlers handlers = {
+        .change = unobstructed_area_change,
+    };
+    unobstructed_area_service_subscribe(handlers, NULL);
 }
 
 static void main_window_unload(Window *window) {

@@ -46,7 +46,9 @@ void battery_layer_init(Layer *window_layer, GRect bounds) {
     battery_handler(battery_state_service_peek());
 }
 
-void battery_layer_set_bounds(GRect bounds);
+void battery_layer_set_bounds(GRect bounds) {
+    layer_set_frame(s_battery_layer, bounds);
+}
 
 void battery_layer_deinit(void) {
     gbitmap_destroy(s_battery_bitmap);

@@ -23,7 +23,9 @@ void steps_layer_init(Layer *window_layer, GRect bounds) {
     layer_add_child(window_layer, s_steps_layer);
 }
 
-void steps_layer_set_bounds(GRect bounds);
+void steps_layer_set_bounds(GRect bounds) {
+    layer_set_frame(s_steps_layer, bounds);
+}
 
 void steps_layer_deinit(void) {
     gbitmap_destroy(s_steps_bitmap);

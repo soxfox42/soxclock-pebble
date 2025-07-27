@@ -97,33 +97,44 @@ static void hands_layer_update(Layer *layer, GContext *ctx) {
     #endif
 }
 
-static void unobstructed_area_change(AnimationProgress progress, void *context) {
+static GRect get_date_bounds(GRect bounds) {
     #ifdef PBL_RECT
-        GRect bounds = layer_get_unobstructed_bounds(window_get_root_layer(s_main_window));
-        layer_set_frame(
-            text_layer_get_layer(s_date_layer),
-            GRect(bounds.size.w - 38, bounds.size.h - PBL_DISPLAY_HEIGHT - 2, 36, 36)
-        );
-        battery_layer_set_bounds(GRect(bounds.size.w * 2 / 9, bounds.size.h / 6, bounds.size.w * 5 / 9, 24));
-        steps_layer_set_bounds(GRect(bounds.size.w * 2 / 9, bounds.size.h * 5 / 6 - 24, bounds.size.w * 5 / 9, 24));
+        return GRect(bounds.size.w - 38, bounds.size.h - PBL_DISPLAY_HEIGHT - 2, 36, 36);
+    #else
+        return GRect(bounds.size.w - 50, bounds.size.h / 2 - 18, 36, 36);
     #endif
+}
+
+static GRect get_battery_bounds(GRect bounds) {
+    int inset_h = bounds.size.w * 2 / 9;
+    int inset_v = bounds.size.h / 6;
+    return GRect(inset_h, inset_v, bounds.size.w - inset_h * 2, 24);
+}
+
+static GRect get_steps_bounds(GRect bounds) {
+    int inset_h = bounds.size.w * 2 / 9;
+    int inset_v = bounds.size.h / 6;
+    return GRect(inset_h, bounds.size.h - inset_v - 24, bounds.size.w - inset_h * 2, 24);
+}
+
+static void unobstructed_area_change(AnimationProgress progress, void *context) {
+    GRect bounds = layer_get_unobstructed_bounds(window_get_root_layer(s_main_window));
+    layer_set_frame(text_layer_get_layer(s_date_layer), get_date_bounds(bounds));
+    battery_layer_set_bounds(get_battery_bounds(bounds));
+    steps_layer_set_bounds(get_steps_bounds(bounds));
 }
 
 static void main_window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
-    GRect bounds = layer_get_bounds(window_layer);
+    GRect full_bounds = layer_get_bounds(window_layer);
+    GRect bounds = layer_get_unobstructed_bounds(window_layer);
 
-    s_background_layer = layer_create(bounds);
+    s_background_layer = layer_create(full_bounds);
     layer_set_update_proc(s_background_layer, background_layer_update);
     layer_add_child(window_layer, s_background_layer);
 
-    #ifdef PBL_RECT
-        s_date_layer = text_layer_create(GRect(bounds.size.w - 38, -2, 36, 36));
-        text_layer_set_text_alignment(s_date_layer, GTextAlignmentRight);
-    #else
-        s_date_layer = text_layer_create(GRect(bounds.size.w - 50, bounds.size.h / 2 - 18, 36, 36));
-        text_layer_set_text_alignment(s_date_layer, GTextAlignmentCenter);
-    #endif
+    s_date_layer = text_layer_create(get_date_bounds(bounds));
+    text_layer_set_text_alignment(s_date_layer, PBL_IF_RECT_ELSE(GTextAlignmentRight, GTextAlignmentCenter));
     text_layer_set_background_color(s_date_layer, GColorClear);
     text_layer_set_text_color(s_date_layer, GColorWhite);
     #if PBL_DISPLAY_WIDTH > 180
@@ -133,19 +144,10 @@ static void main_window_load(Window *window) {
     #endif
     layer_add_child(window_layer, text_layer_get_layer(s_date_layer));
 
-    const int meter_inset_vertical = PBL_DISPLAY_HEIGHT / 6;
-    const int meter_inset_horizontal = PBL_DISPLAY_WIDTH * 2 / 9;
+    battery_layer_init(window_layer, get_battery_bounds(bounds));
+    steps_layer_init(window_layer, get_steps_bounds(bounds));
 
-    battery_layer_init(
-        window_layer,
-        GRect(meter_inset_horizontal, meter_inset_vertical, bounds.size.w - meter_inset_horizontal * 2, 24)
-    );
-    steps_layer_init(
-        window_layer,
-        GRect(meter_inset_horizontal, bounds.size.h - 24 - meter_inset_vertical, bounds.size.w - meter_inset_horizontal * 2, 24)
-    );
-
-    s_hands_layer = layer_create(bounds);
+    s_hands_layer = layer_create(full_bounds);
     layer_set_update_proc(s_hands_layer, hands_layer_update);
     layer_add_child(window_layer, s_hands_layer);
 

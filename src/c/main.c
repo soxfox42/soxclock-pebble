@@ -5,11 +5,9 @@
 
 static Window *s_main_window;
 
-static BitmapLayer *s_background_layer;
+static Layer *s_background_layer;
 static TextLayer *s_date_layer;
 static Layer *s_hands_layer;
-
-static GBitmap *s_background_bitmap;
 
 static int s_time_hours;
 static int s_time_minutes;
@@ -30,6 +28,47 @@ static void update_time(void) {
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
     update_time();
     steps_layer_mark_dirty();
+}
+
+static void background_layer_update(Layer *layer, GContext *ctx) {
+    GRect full_bounds = layer_get_bounds(layer);
+
+    graphics_context_set_fill_color(ctx, GColorBlack);
+    graphics_fill_rect(ctx, full_bounds, 0, GCornerNone);
+
+    #ifdef PBL_RECT
+        GRect bounds = layer_get_unobstructed_bounds(layer);
+        GPoint center = GPoint(bounds.size.w / 2, bounds.size.h / 2);
+    #else
+        GPoint center = GPoint(full_bounds.size.w / 2, full_bounds.size.h / 2);
+    #endif
+
+    const int tick_inset = 15;
+    const int tick_size = 10;
+
+    graphics_context_set_stroke_width(ctx, PBL_DISPLAY_WIDTH >= 200 ? 5 : 3);
+    graphics_context_set_stroke_color(ctx, GColorWhite);
+    for (int tick = 0; tick < 12; tick++) {
+        int tick_angle = (tick - 1) * TRIG_MAX_ANGLE / 12;
+        GPoint start;
+        GPoint end;
+        #ifdef PBL_RECT
+            int sign = 1 - 2 * (tick >= 6);
+            if (tick % 6 < 3) {
+                start.x = center.x + sign * (center.x - tick_inset);
+                start.y = center.y + sign * (center.x - tick_inset) * sin_lookup(tick_angle) / cos_lookup(tick_angle);
+            } else {
+                start.x = center.x + sign * (center.y - tick_inset) * cos_lookup(tick_angle) / sin_lookup(tick_angle);
+                start.y = center.y + sign * (center.y - tick_inset);
+            }
+        #else
+            start.x = center.x + (center.x - tick_inset) * cos_lookup(tick_angle) / TRIG_MAX_RATIO;
+            start.y = center.y + (center.y - tick_inset) * sin_lookup(tick_angle) / TRIG_MAX_RATIO;
+        #endif
+        end.x = start.x + tick_size * cos_lookup(tick_angle) / TRIG_MAX_RATIO;
+        end.y = start.y + tick_size * sin_lookup(tick_angle) / TRIG_MAX_RATIO;
+        graphics_draw_line(ctx, start, end);
+    }
 }
 
 static void draw_hand(GContext *ctx, GRect bounds, int length, int width, int angle, GColor color) {
@@ -66,11 +105,9 @@ static void main_window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
 
-    s_background_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BACKGROUND);
-
-    s_background_layer = bitmap_layer_create(bounds);
-    bitmap_layer_set_bitmap(s_background_layer, s_background_bitmap);
-    layer_add_child(window_layer, bitmap_layer_get_layer(s_background_layer));
+    s_background_layer = layer_create(bounds);
+    layer_set_update_proc(s_background_layer, background_layer_update);
+    layer_add_child(window_layer, s_background_layer);
 
     #ifdef PBL_RECT
         s_date_layer = text_layer_create(GRect(bounds.size.w - 38, -2, 36, 36));
@@ -108,13 +145,11 @@ static void main_window_load(Window *window) {
 }
 
 static void main_window_unload(Window *window) {
-    gbitmap_destroy(s_background_bitmap);
-
-    bitmap_layer_destroy(s_background_layer);
-    text_layer_destroy(s_date_layer);
     battery_layer_deinit();
     steps_layer_deinit();
+    layer_destroy(s_background_layer);
     layer_destroy(s_hands_layer);
+    text_layer_destroy(s_date_layer);
 }
 
 static void init(void) {

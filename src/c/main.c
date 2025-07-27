@@ -113,7 +113,7 @@ static void main_window_load(Window *window) {
         s_date_layer = text_layer_create(GRect(bounds.size.w - 38, -2, 36, 36));
         text_layer_set_text_alignment(s_date_layer, GTextAlignmentRight);
     #else
-        s_date_layer = text_layer_create(GRect(bounds.size.w / 2 - 18, 20, 36, 36));
+        s_date_layer = text_layer_create(GRect(bounds.size.w - 50, bounds.size.h / 2 - 18, 36, 36));
         text_layer_set_text_alignment(s_date_layer, GTextAlignmentCenter);
     #endif
     text_layer_set_background_color(s_date_layer, GColorClear);
